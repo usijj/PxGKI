@@ -229,7 +229,7 @@ jobs:
          cp /home/runner/work/PxGKI/PxGKI/Buildkernel/dist/kernel /home/runner/work/PxGKI/PxGKI/Buildkernel/patched/
          cp /home/runner/work/PxGKI/PxGKI/Buildkernel/SukiSU_patch/AnyKernel3/android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}-AnyKernel3.zip /home/runner/work/PxGKI/PxGKI/Buildkernel/patched/
 
-      - name: Upload kernel and AnyKernel3
+      - name: Upload Kernel and AnyKernel3
         uses: actions/upload-artifact@v5
         with:
           name: android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}-kernel&AnyKernel3
