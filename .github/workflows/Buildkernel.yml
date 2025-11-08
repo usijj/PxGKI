@@ -2,24 +2,32 @@ name: Buildkernel
 on:
   workflow_dispatch:
     inputs:
-      Android_Version:
-        description: "Android Version"
+      Android_Release:
+        description: "Android Release"
         required: true
+        type: choice
         default: '15'
+        options:
+           - '14'
+           - '15'
       Kernel_Version:
         description: "Kernel Version"
         required: true
+        type: choice
         default: '6.6'
+        options:
+           - '6.1'
+           - '6.6'
       Security_Patch:
-        description: "Security Patch or lts"
+        description: "(Recommend same as stock kernel)  ㅤㅤㅤKernel Security Patch or lts (latest)"
         required: true
         default: '2025-04'
       Kernel_Suffix:
-        description: "Custom suffix to replace the dirty suffix (Just delete the dirty suffix,fill in [no])"
+        description: "(Recommend same as stock kernel)ㅤ‏‎‏‎‏‎‏‎ ㅤ‏‎‏‎‏‎‏‎ ㅤ‏‎‏‎‏‎‏‎ ㅤ‏‎‏‎‏‎‏‎ (Just delete the dirty suffix,fill in [no]) Kernel Suffix"
         required: false
         default: 'gd4aed7ed470e-ab13759939-4k'
       Kernel_Time:
-        description: "Build Time"
+        description: "(Recommend same as stock kernel)  ㅤㅤㅤKernel Build Timestamp"
         required: true
         default: 'Thu Jul 10 03:15:03 UTC 2025'
       Enable_KPM_Feature:
@@ -72,13 +80,14 @@ jobs:
         run: |
          mkdir Buildkernel
          cd Buildkernel
-         repo init -u https://android.googlesource.com/kernel/manifest -b common-android${{ github.event.inputs.Android_Version }}-${{ github.event.inputs.Kernel_Version }}-${{ github.event.inputs.Security_Patch }} --depth=1
+         repo init -u https://android.googlesource.com/kernel/manifest -b common-android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}-${{ github.event.inputs.Security_Patch }} --depth=1
          repo sync
 
       - name: Fix 6.6 Builds
+        if: ${{ github.event.inputs.Kernel_Version == '6.6' }}
         run: |
           cd Buildkernel/common
-          FORMATTED_BRANCH="android${{ github.event.inputs.Android_Version }}-${{ github.event.inputs.Kernel_Version }}"
+          FORMATTED_BRANCH="android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}"
           # Fake Patch to fix failures
           fake_patched=0
           if [ "$FORMATTED_BRANCH" = "android15-6.6" ]; then
@@ -102,16 +111,16 @@ jobs:
          cd Buildkernel
          curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s susfs-main
         
-      - name: Setup susfs & manual hooks
+      - name: Setup susfs and manual hooks
         run: |
          cd Buildkernel
-         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android${{ github.event.inputs.Android_Version }}-${{ github.event.inputs.Kernel_Version }}     
+         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}     
          git clone https://github.com/SukiSU-Ultra/SukiSU_patch.git
-         cp susfs4ksu/kernel_patches/50_add_susfs_in_gki-android${{ github.event.inputs.Android_Version }}-${{ github.event.inputs.Kernel_Version }}.patch ./common/
+         cp susfs4ksu/kernel_patches/50_add_susfs_in_gki-android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}.patch ./common/
          cp susfs4ksu/kernel_patches/fs/* ./common/fs/
          cp susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
          cd common
-         patch -p1 < 50_add_susfs_in_gki-android${{ github.event.inputs.Android_Version }}-${{ github.event.inputs.Kernel_Version }}.patch || true
+         patch -p1 < 50_add_susfs_in_gki-android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}.patch || true
          cp ../SukiSU_patch/hooks/scope_min_manual_hooks_v1.6.patch ./
          patch -p1 -F 3 < scope_min_manual_hooks_v1.6.patch
            
@@ -139,22 +148,34 @@ jobs:
          echo "CONFIG_TMPFS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
          echo "CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y" >> ./common/arch/arm64/configs/gki_defconfig
          sed -i 's/check_defconfig//' ./common/build.config.gki
-         echo -e "\e[33m[Done]\e[0m" Added susfs configuration to kernel
+         echo -e "\e[33m[Done]\e[0m" Add susfs configuration to kernel
       
       - name: Add KPM configuration to kernel
         if: ${{inputs.Enable_KPM_Feature }}
         run: |
          cd Buildkernel
          echo "CONFIG_KPM=y" >> ./common/arch/arm64/configs/gki_defconfig
-         echo -e "\e[33m[Done]\e[0m" Added KPM configuration to kernel
+         echo -e "\e[33m[Done]\e[0m" Add KPM configuration to kernel
+         echo -e "\e[33m[Done]\e[0m" Enable KPM feature
 
       - name: Set kernel suffix
         run: |
          cd Buildkernel
-         if [ "${{ github.event.inputs.Kernel_Suffix }}" = "no" ]; then
-          sed -i '$i res=$(echo "$res" | sed '\''s/-dirty//g'\'')' common/scripts/setlocalversion
+         if [ "${{ github.event.inputs.Kernel_Version }}" = "6.1" ] &&  [ "${{ github.event.inputs.Kernel_Suffix }}" = "no" ]; then
+          sed -i "/stable_scmversion_cmd/s/-maybe-dirty//g" ./build/kernel/kleaf/impl/stamp.bzl
           echo -e "\e[33m[Done]\e[0m" Delete the dirty suffix
-         else
+         fi
+         if [ "${{ github.event.inputs.Kernel_Version }}" = "6.6" ] &&  [ "${{ github.event.inputs.Kernel_Suffix }}" = "no" ]; then
+          sed -i "/stable_scmversion_cmd/s/-maybe-dirty//g" ./build/kernel/kleaf/impl/stamp.bzl
+          sed -i '/^CONFIG_LOCALVERSION=/ s/="\([^"]*\)"/=""/' ./common/arch/arm64/configs/gki_defconfig
+          echo -e "\e[33m[Done]\e[0m" Delete the dirty suffix
+         fi         
+         if [ "${{ github.event.inputs.Kernel_Version }}" = "6.1" ] && [ "${{ github.event.inputs.Kernel_Suffix }}" != "no" ]; then
+          sed -i "/stable_scmversion_cmd/s/-maybe-dirty//g" ./build/kernel/kleaf/impl/stamp.bzl
+          sed -i '$s|echo "\$res"|echo "$res-${{ github.event.inputs.Kernel_Suffix }}"|' ./common/scripts/setlocalversion
+          echo -e "\e[33m[Done]\e[0m" Setup custom suffix
+         fi
+         if [ "${{ github.event.inputs.Kernel_Version }}" = "6.6" ] && [ "${{ github.event.inputs.Kernel_Suffix }}" != "no" ]; then
           sed -i "/stable_scmversion_cmd/s/-maybe-dirty//g" ./build/kernel/kleaf/impl/stamp.bzl
           sed -i "\$s|echo \"\\\$res\"|echo \"-${{ github.event.inputs.kernel_suffix }}\"|" ./common/scripts/setlocalversion
           sudo sed -i "s/-4k/-${{ github.event.inputs.Kernel_Suffix }}/g" ./common/arch/arm64/configs/gki_defconfig
@@ -198,7 +219,7 @@ jobs:
         run: |
          cd Buildkernel/SukiSU_patch/AnyKernel3
          cp /home/runner/work/PxGKI/PxGKI/Buildkernel/dist/Image /home/runner/work/PxGKI/PxGKI/Buildkernel/SukiSU_patch/AnyKernel3/
-         zip -r "${{ github.event.inputs.Kernel_Version }}-android${{ github.event.inputs.Android_Version }}-AnyKernel3.zip" ./*         
+         zip -r "android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}-AnyKernel3.zip" ./*         
 
       - name: Output AnyKernel3
         run: |
@@ -206,12 +227,12 @@ jobs:
          mkdir patched
          cd patched
          cp /home/runner/work/PxGKI/PxGKI/Buildkernel/dist/kernel /home/runner/work/PxGKI/PxGKI/Buildkernel/patched/
-         cp /home/runner/work/PxGKI/PxGKI/Buildkernel/SukiSU_patch/AnyKernel3/${{ github.event.inputs.Kernel_Version }}-android${{ github.event.inputs.Android_Version }}-AnyKernel3.zip /home/runner/work/PxGKI/PxGKI/Buildkernel/patched/
+         cp /home/runner/work/PxGKI/PxGKI/Buildkernel/SukiSU_patch/AnyKernel3/android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}-AnyKernel3.zip /home/runner/work/PxGKI/PxGKI/Buildkernel/patched/
 
       - name: Upload kernel and AnyKernel3
         uses: actions/upload-artifact@v5
         with:
-          name: kernel&AnyKernel3-${{ github.event.inputs.Kernel_Version }}-android${{ github.event.inputs.Android_Version }}
+          name: android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}-kernel&AnyKernel3
           path: |
             Buildkernel/patched/kernel
             Buildkernel/patched/*.zip
