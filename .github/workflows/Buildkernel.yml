@@ -46,24 +46,6 @@ jobs:
       CCACHE_HARDLINK: "true"
 
     steps:
-      - name: Maximize Build Space
-        uses: AdityaGarg8/remove-unwanted-software@v5
-        with:
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'true'
-          remove-large-packages: 'true'
-          remove-swapfile: 'true'
-          remove-cached-tools: 'false'
-          verbose: 'true'
-          
-      - name: Git for GKI
-        run: |
-         git config --global user.name "user0"
-         git config --global user.email "user0@gmail.com"
-
       - name: Install repo
         run: |
          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
