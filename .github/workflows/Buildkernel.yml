@@ -58,12 +58,6 @@ jobs:
           remove-swapfile: 'true'
           remove-cached-tools: 'false'
           verbose: 'true'
-
-      #- name: Install toolkit
-        #run: |
-         #sudo apt update
-         #sudo apt upgrade -y
-         #sudo apt-get install -y curl git python3 zip
           
       - name: Git for GKI
         run: |
