@@ -208,7 +208,7 @@ jobs:
       - name: Upload Kernel and AnyKernel3
         uses: actions/upload-artifact@v5
         with:
-          name: android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}-kernel&AnyKernel3
+          name: Kernel&AnyKernel3-android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}
           path: |
             Buildkernel/patched/kernel
             Buildkernel/patched/*.zip
