@@ -90,7 +90,7 @@ jobs:
       - name: Setup susfs and manual hooks
         run: |
          cd Buildkernel
-         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}     
+         git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}-dev
          git clone https://github.com/SukiSU-Ultra/SukiSU_patch.git
          cp susfs4ksu/kernel_patches/50_add_susfs_in_gki-android${{ github.event.inputs.Android_Release }}-${{ github.event.inputs.Kernel_Version }}.patch ./common/
          cp susfs4ksu/kernel_patches/fs/* ./common/fs/
